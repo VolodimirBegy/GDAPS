@@ -37,7 +37,7 @@ class Link:
     def __init__(self, u, v, grid, env, bandwidth, mean, std):
         self.env = env
 
-        if isinstance(u, type(WorkerNode)):
+        if isinstance(u, WorkerNode):
             raise Exception('Illegal link from a worker node.')
         if u == v:
             raise Exception('Illegal link from a machine to itself.')
@@ -50,7 +50,7 @@ class Link:
 
         self.grid = grid
 
-        if isinstance(u, type(StorageElement)) and isinstance(v, type(StorageElement)):
+        if isinstance(u, StorageElement) and isinstance(v, StorageElement):
             lower_bound = self.SE_TO_SE_MIN_BG_REQUESTS
             upper_bound = self.SE_TO_SE_MAX_BG_REQUESTS
         elif u.data_center == v.data_center:

@@ -26,7 +26,7 @@ class DistributedDataManagementSystem:
         # among 2 storage elements
         links = self.grid.links
         for key, value in links.items():
-            if isinstance(value.u, type(StorageElement)) and isinstance(value.v, type(StorageElement)):
+            if isinstance(value.u, StorageElement) and isinstance(value.v, StorageElement):
                 self.transfer_quotas[key] = simpy.Resource(self.env, capacity=randint(500, 2000))
 
     def request_data_placement(self, job, i):
