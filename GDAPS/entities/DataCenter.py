@@ -14,13 +14,13 @@ class DataCenter:
 
     def __init__(self, storage_elements, worker_nodes):
         for se in storage_elements:
-            if not isinstance(se, StorageElement):
+            if not isinstance(se, type(StorageElement)):
                 raise Exception('An object provided in the SE list is not of the appropriate type')
             se.data_center = self
         self.storage_elements = storage_elements
 
         for wn in worker_nodes:
-            if not isinstance(wn, WorkerNode):
+            if not isinstance(wn, type(WorkerNode)):
                 raise Exception('An object provided in the WN list is not of the appropriate type')
             wn.data_center = self
         self.worker_nodes = worker_nodes
