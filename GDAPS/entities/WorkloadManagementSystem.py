@@ -4,7 +4,7 @@ This class is used to create instances of workload management systems.
 
 from GDAPS.entities import AccessProfile
 
-from GDAPS.utils import Time
+from GDAPS.util import Time
 
 
 

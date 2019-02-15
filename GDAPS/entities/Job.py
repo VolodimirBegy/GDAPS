@@ -6,7 +6,7 @@ A job read the input data using one of the access profiles.
 
 from GDAPS.entities import AccessProfile
 
-from GDAPS.utils import Time
+from GDAPS.util import Time
 
 import uuid
 
