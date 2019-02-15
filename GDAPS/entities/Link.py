@@ -6,10 +6,10 @@ A link can be created between the following pairs of entities (src - dst):
 2) Storage element - worker node
 """
 
-from .StorageElement import StorageElement
-from .WorkerNode import WorkerNode
-from .AccessProfile import AccessProfile
-from .Protocol import Protocol
+from GDAPS.entities import StorageElement
+from GDAPS.entities import WorkerNode
+from GDAPS.entities import AccessProfile
+from GDAPS.entities import Protocol
 
 from random import randint
 from torch.distributions.normal import Normal

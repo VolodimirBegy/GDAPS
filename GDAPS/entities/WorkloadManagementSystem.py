@@ -2,8 +2,9 @@
 This class is used to create instances of workload management systems.
 """
 
-from .AccessProfile import AccessProfile
-from .Time import Time
+from GDAPS.entities import AccessProfile
+
+from GDAPS.utils import Time
 
 
 

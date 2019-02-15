@@ -4,9 +4,10 @@ The DDM system performs data placement according to link quotas.
 The DDM system removes outdated replicas from the local data center.
 """
 
-from .StorageElement import StorageElement
-from .AccessProfile import AccessProfile
-from .Time import Time
+from GDAPS.entities import StorageElement
+from GDAPS.entities import AccessProfile
+
+from GDAPS.util import Time
 
 from random import randint
 import simpy

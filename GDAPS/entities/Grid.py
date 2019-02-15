@@ -2,9 +2,9 @@
 This class is used to create the grid instance.
 """
 
-from .Link import Link
-from .StorageElement import StorageElement
-from .Protocol import Protocol
+from GDAPS.entities import Link
+from GDAPS.entities import StorageElement
+from GDAPS.entities import Protocol
 
 from random import uniform, randint
 from torch.distributions.normal import Normal

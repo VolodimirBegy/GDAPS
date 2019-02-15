@@ -3,7 +3,7 @@ This class is used to create instances of worker nodes.
 Computational jobs are submitted to worker nodes.
 """
 
-from .Time import Time
+from GDAPS.utils import Time
 
 import uuid
 import simpy

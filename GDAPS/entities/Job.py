@@ -4,8 +4,9 @@ A job runs on a single worker node.
 A job read the input data using one of the access profiles.
 """
 
-from .AccessProfile import AccessProfile
-from .Time import Time
+from GDAPS.entities import AccessProfile
+
+from GDAPS.utils import Time
 
 import uuid
 

@@ -3,8 +3,8 @@ This class is used to create data center instances.
 """
 
 import uuid
-from .StorageElement import StorageElement
-from .WorkerNode import WorkerNode
+from GDAPS.entities import StorageElement
+from GDAPS.entities import WorkerNode
 
 from random import choice
 

@@ -6,7 +6,7 @@ A storage element persists replicas.
 
 import uuid
 
-from .Replica import Replica
+from GDAPS.entities import Replica
 
 
 
