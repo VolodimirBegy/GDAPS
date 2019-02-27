@@ -13,6 +13,7 @@ class WorkloadManagementSystem:
     def __init__(self, env):
         self.env = env
         self.grid = None
+        self.job_queues = {}
 
     def submit(self, job, dc, start_time):
         if start_time > self.env.now:

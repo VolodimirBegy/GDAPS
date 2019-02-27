@@ -8,3 +8,4 @@ class Protocol:
 
     def __init__(self, overhead):
         self.overhead = overhead
+        self.description = None

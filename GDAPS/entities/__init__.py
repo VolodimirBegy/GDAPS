@@ -2,6 +2,7 @@ from .AccessProfile import AccessProfile
 from .Protocol import Protocol
 from .File import File
 from .Replica import Replica
+from .Host import Host
 from .StorageElement import StorageElement
 from .WorkerNode import WorkerNode
 from .DataCenter import DataCenter

@@ -6,13 +6,15 @@ A storage element persists replicas.
 
 import uuid
 
+from GDAPS.entities import Host
 from GDAPS.entities import Replica
 
 
 
-class StorageElement:
+class StorageElement(Host):
 
     def __init__(self, capacity):
+        Host.__init__(self)
         # capacity in MB
         self.capacity = float(capacity)
 

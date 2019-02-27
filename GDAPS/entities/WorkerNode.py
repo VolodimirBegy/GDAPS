@@ -3,16 +3,20 @@ This class is used to create instances of worker nodes.
 Computational jobs are submitted to worker nodes.
 """
 
+from GDAPS.entities import Host
 from GDAPS.util import Time
 
 import uuid
 import simpy
+import math
 
 
 
-class WorkerNode:
+class WorkerNode(Host):
 
     def __init__(self, env, mips, job_slots, scratch_capacity):
+        Host.__init__(self)
+        
         self.env = env
 
         # per single job slot
@@ -27,9 +31,6 @@ class WorkerNode:
         #will be assigned, when a list of WNs is passed to a DC
         self.data_center = None
         self.id = uuid.uuid4().int
-
-    def execute_job(self):
-        return True
 
     def stage_in(self, replica, job_id):
         link = self.data_center.grid.get_link(replica.storage_element, self)
@@ -51,3 +52,6 @@ class WorkerNode:
             else:
                 #print('Not enough scratch space to perform stage-in.')
                 yield self.env.timeout(Time.STAGE_IN_WAITING_TIME)
+
+    def execute_job(self, job):
+        return math.ceil(job.workload/self.mips)

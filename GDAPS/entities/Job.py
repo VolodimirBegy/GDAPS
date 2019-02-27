@@ -21,6 +21,9 @@ class Job(object):
         # data center, which will run the job
         self.data_center = data_center
         self.finished_data_placement = {}
+
+        self.replicas = []
+        self.access_profiles = []
         self.remote_data_access_threads = 0
 
     def __repr__(self):
