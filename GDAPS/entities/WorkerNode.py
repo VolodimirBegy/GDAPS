@@ -28,6 +28,9 @@ class WorkerNode:
         self.data_center = None
         self.id = uuid.uuid4().int
 
+    def execute_job(self):
+        return True
+
     def stage_in(self, replica, job_id):
         link = self.data_center.grid.get_link(replica.storage_element, self)
         read = 0

@@ -20,6 +20,7 @@ class DistributedDataManagementSystem:
         self.env = env
         self.grid = None
         self.transfer_quotas = {}
+        self.replica_catalog = {}
 
     def set_transfer_quotas(self):
         # only for data placement
