@@ -16,7 +16,7 @@ class WorkerNode(Host):
 
     def __init__(self, env, mips, job_slots, scratch_capacity):
         Host.__init__(self)
-        
+
         self.env = env
 
         # per single job slot
@@ -33,6 +33,7 @@ class WorkerNode(Host):
         self.id = uuid.uuid4().int
 
     def stage_in(self, replica, job_id):
+
         link = self.data_center.grid.get_link(replica.storage_element, self)
         read = 0
         while read < replica.size:
@@ -41,7 +42,7 @@ class WorkerNode(Host):
                 self.scratch_capacity -= replica.size
                 # read
                 link.campaign_load += 1
-                while(read < replica.size):
+                while read < replica.size:
                     # add a new transferred chunk
                     chunk = link.transfer_chunk(replica, "XRDCP", n_threads=1, job_id=job_id, read=read)
                     read += chunk
@@ -50,7 +51,7 @@ class WorkerNode(Host):
                 link.campaign_load -= 1
                 self.scratch_capacity += replica.size
             else:
-                #print('Not enough scratch space to perform stage-in.')
+                print('Not enough scratch space to perform stage-in.')
                 yield self.env.timeout(Time.STAGE_IN_WAITING_TIME)
 
     def execute_job(self, job):

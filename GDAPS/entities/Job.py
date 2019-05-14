@@ -64,33 +64,28 @@ class Job(object):
         link = grid.get_link(replica.storage_element, self.worker_node)
 
         if self.access_profiles[i] in AccessProfile.INCLUDES_STAGE_IN:
-            #delet this
+
             key = "{};{}".format(link.id, "XRDCP")
             if key not in grid.transfer_datasets:
-                grid.transfer_datasets[key] = "Timestamp,S,ConPr,T\n"
+                grid.transfer_datasets[key] = [] #"Timestamp,S,ConPr,T\n"
             start = self.env.now
-            #end delet this
 
-            # stage-in
-            # for stage-in every file access is handles by an individual process
-            link.v.stage_in(replica, self.id)
+            yield self.env.process(self.worker_node.stage_in(replica, self.id))
 
-            #delet this
             end = self.env.now
             T = end - start
             S = replica.size
             ConPr = 0
             for tick in range(start, end):
                 chunks_dict = link.history[tick]
-                # key: job.id;protocol
-                # value: MB
+                #whatever type of campaign traffic
+                #it should be added to ConPr
                 for _, value in chunks_dict.items():
                     ConPr += value
-            # the above loop will redundantly
-            # add the current replica. subtract it
+            # the above loop will redundantly add
+            # the current replica. subtract its size
             ConPr -= replica.size
-            grid.transfer_datasets[key] += "{},{},{},{}\n".format(start, S, ConPr, T)
-            #end delet this
+            grid.transfer_datasets[key].append([S, ConPr, T])
 
         elif self.access_profiles[i] in AccessProfile.INCLUDES_REMOTE_DATA_ACCESS:
             # remote data access
@@ -112,7 +107,6 @@ class Job(object):
                 read += chunk
                 yield self.env.timeout(Time.SECOND)
 
-            #delet this
             end = self.env.now
             T = end - start
             S = replica.size
@@ -132,7 +126,6 @@ class Job(object):
             # the current replica. subtract its size
             ConTh -= replica.size
             grid.transfer_datasets[key].append([S, ConTh, ConPr, T])
-            #end delet this
 
             self.remote_data_access_threads -= 1
             if self.remote_data_access_threads == 0:
@@ -145,4 +138,4 @@ class Job(object):
         for i in range(len(self.replicas)):
             read_requests.append(self.env.process(self.read_data(i)))
         yield from read_requests
-        # process replicas based on mips?
+        # process replicas based on mips

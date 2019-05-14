@@ -12,4 +12,3 @@ __email__ = "volodimir.begy@cern.ch"
 
 import simpy
 import numpy
-import torch

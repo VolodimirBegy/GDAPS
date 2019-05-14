@@ -50,7 +50,6 @@ class DistributedDataManagementSystem:
                 # eventually it will become available
                 yield self.env.timeout(Time.SECOND)
                 #print('No space to perform data placement at{}.'.format(self.env.now))
-                #print('Waiting for a day.')
 
         link = grid.get_link(remote_replica.storage_element, local_SE)
         with self.transfer_quotas[link.id].request() as req:
@@ -62,7 +61,7 @@ class DistributedDataManagementSystem:
 
             key = "{};{}".format(link.id, "GSIFTP")
             if key not in grid.transfer_datasets:
-                grid.transfer_datasets[key] = "Timestamp,S,ConPr,T\n"
+                grid.transfer_datasets[key] = [] #"Timestamp,S,ConPr,T\n"
             start = self.env.now
 
             while(read < remote_replica.size):
@@ -81,7 +80,7 @@ class DistributedDataManagementSystem:
             # the above loop will redundantly add
             # the current replica. subtract its size
             ConPr -= remote_replica.size
-            grid.transfer_datasets[key] += "{},{},{},{}\n".format(start, S, ConPr, T)
+            grid.transfer_datasets[key].append([S, ConPr, T])
 
             link.campaign_load -= 1
             local_replica = local_SE.replicate(file=remote_replica.file, reserved_space=True)

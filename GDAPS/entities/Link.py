@@ -12,7 +12,7 @@ from GDAPS.entities import AccessProfile
 from GDAPS.entities import Protocol
 
 from random import randint
-from torch.distributions.normal import Normal
+import numpy as np
 
 
 
@@ -60,15 +60,16 @@ class Link:
             lower_bound = self.REMOTE_SE_TO_WN_MIN_BG_REQUESTS
             upper_bound = self.REMOTE_SE_TO_WN_MAX_BG_REQUESTS
         # in amount of requests
-        self.background_load_distribution = Normal(mean, std)
-        self.background_load = max(0, int(self.background_load_distribution.sample()))
+        self.background_load_mean = mean
+        self.background_load_std = std
+        self.background_load = max(0, int(np.random.normal(mean, std, 1).item()))
 
         # cumulatively from any protocols
         # among these 2 hosts
         self.campaign_load = 0
 
-        self.background_load_update_preiod = 900
-        self.updated_load_at = []
+        self.background_load_update_preiod = 180
+        self.updated_load_counter = 0
 
         # used to create datasets
         self.history = {}
@@ -81,8 +82,8 @@ class Link:
 
         remote_replica.accessed_at = self.env.now
 
-        if self.env.now % self.background_load_update_preiod == 0 and self.env.now not in self.updated_load_at:
-            self.updated_load_at.append(self.env.now)
+        if int(self.env.now / self.background_load_update_preiod) > self.updated_load_counter:
+            self.updated_load_counter = int(self.env.now / self.background_load_update_preiod)
             self.grid.update_background_load(self)
 
         transferred_MB = (self.bandwidth / (self.background_load + self.campaign_load)) / n_threads

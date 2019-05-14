@@ -7,7 +7,7 @@ from GDAPS.entities import StorageElement
 from GDAPS.entities import Protocol
 
 from random import uniform, randint
-from torch.distributions.normal import Normal
+import numpy as np
 
 
 
@@ -95,4 +95,4 @@ class Grid:
         return self.links[linkId]
 
     def update_background_load(self, link):
-        link.background_load = max(0, int(link.background_load_distribution.sample()))
+        link.background_load = max(0, int(np.random.normal(link.background_load_mean, link.background_load_std, 1).item()))

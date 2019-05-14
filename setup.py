@@ -6,8 +6,7 @@ packages = find_packages()
 
 _install_requires = [
     "simpy",
-    "numpy",
-    "torch"
+    "numpy"
 ]
 
 _parameters = {
