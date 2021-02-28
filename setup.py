@@ -5,7 +5,7 @@ from setuptools import setup
 packages = find_packages()
 
 _install_requires = [
-    "simpy",
+    "simpy==3.0.11",
     "numpy"
 ]
 
