@@ -10,8 +10,8 @@ import uuid
 
 class File:
 
-    def __init__(self, size):
-        self.id = uuid.uuid4().int
+    def __init__(self, size, id):
+        self.id = id#uuid.uuid4().int
         # size in MB
         self.size = float(size)
         # list of storage elements

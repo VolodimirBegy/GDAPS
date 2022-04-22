@@ -9,44 +9,47 @@ import uuid
 from GDAPS.entities import Host
 from GDAPS.entities import Replica
 
+from simpy.resources.container import Container
+
 
 
 class StorageElement(Host):
 
-    def __init__(self, capacity):
+    def __init__(self, env, capacity, id):
         Host.__init__(self)
+        self.env = env
         # capacity in MB
-        self.capacity = float(capacity)
+        self.capacity = Container(env, float(capacity), float(capacity))
 
         # will be assigned, when a list of SEs is passed to a DC
         self.data_center = None
 
-        self.id = uuid.uuid4().int
+        self.id = id#uuid.uuid4().int
         # list of persisted replicas
         self.replicas = []
-        self.available_capacity = self.capacity
 
-    def replicate(self, file, reserved_space):
-        if file.size > self.available_capacity and not reserved_space:
-            print("NO SPACE.")
-            return None
+    def replicate(self, file):
+        yield self.capacity.get(file.size)
+
         replica = Replica(self, file)
         self.replicas.append(replica)
         file.replicated_at.append(self)
         file.replicas.append(replica)
 
-        if not reserved_space:
-            self.available_capacity -= file.size
-
         return replica
 
     def remove_replica(self, replica):
-        self.replicas.remove(replica)
-        self.available_capacity += replica.size
+        if replica in self.replicas:
+            self.replicas.remove(replica)
+            replica.file.replicas.remove(replica)
+            replica.file.replicated_at.remove(self)
+            yield self.capacity.put(replica.size)
+        else:
+            return
 
     def has_replica(self, file):
         for replica in self.replicas:
-            if(replica.file == file):
+            if(replica.file is file):
                 return True
         return False
 

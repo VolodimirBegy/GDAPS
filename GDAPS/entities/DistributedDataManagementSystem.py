@@ -11,7 +11,7 @@ from GDAPS.util import Time
 
 from random import randint
 import simpy
-
+import uuid
 
 
 class DistributedDataManagementSystem:
@@ -22,55 +22,51 @@ class DistributedDataManagementSystem:
         self.transfer_quotas = {}
         self.replica_catalog = {}
 
-    def set_transfer_quotas(self):
+    def set_transfer_quotas(self, n):
         # only for data placement
         # among 2 storage elements
         links = self.grid.links
         for key, value in links.items():
             if isinstance(value.u, StorageElement) and isinstance(value.v, StorageElement):
-                self.transfer_quotas[key] = simpy.Resource(self.env, capacity=randint(500, 2000))
+                self.transfer_quotas[key] = simpy.Resource(self.env, capacity=n)
 
     def request_data_placement(self, job, i):
         grid = self.grid
         # request to transfer the replica
-        # to the first available local SE
+        # to the local SE with the most free space
         remote_replica = job.replicas[i]
-        local_SE = None
-
-        while local_SE is None:
-            for SE in job.data_center.storage_elements:
-                if SE.available_capacity >= remote_replica.size:
-                    local_SE = SE
-                    # reserve space
-                    SE.available_capacity -= remote_replica.size
-                    break
-
-            if local_SE is None:
-                # check, whether space became available
-                # eventually it will become available
-                yield self.env.timeout(Time.SECOND)
-                #print('No space to perform data placement at{}.'.format(self.env.now))
+        local_SE = job.data_center.storage_elements[0]
+        for SE in job.data_center.storage_elements:
+            if SE.capacity.level >= local_SE.capacity.level:
+                local_SE = SE
+        #print("{} | {}".format(local_SE.capacity.level, remote_replica.size))
+        local_replica = yield self.env.process(local_SE.replicate(file=remote_replica.file))
 
         link = grid.get_link(remote_replica.storage_element, local_SE)
         with self.transfer_quotas[link.id].request() as req:
             yield req
             # at this point DDM can transfer the file at the given link
-            #replicate
-            link.campaign_load += 1
+            # replicate
+            # generate a unique id for this transfer
+            transfer_id = uuid.uuid4().int
+            link.campaign_load[transfer_id] = [remote_replica.size]
+            link.campaign_load_changed = True
             read = 0
 
-            key = "{};{}".format(link.id, "GSIFTP")
+            '''key = "{};{}".format(link.id, "GSIFTP")
             if key not in grid.transfer_datasets:
-                grid.transfer_datasets[key] = [] #"Timestamp,S,ConPr,T\n"
-            start = self.env.now
+                grid.transfer_datasets[key] = []  # "Timestamp,S,ConPr,T\n"
+            start = self.env.now'''
 
-            while(read < remote_replica.size):
-                chunk = link.transfer_chunk(remote_replica, "GSIFTP", n_threads=1, job_id=job.id, read=read)
-                read += chunk
+            ret_val = [None, None]
+            while (read < remote_replica.size):
+                ret_val = yield self.env.process(link.transfer_chunk(remote_replica, "GSIFTP", job_id=job.id, read=read,
+                                                                     transfer_id=transfer_id, BW=ret_val[1]))
+                read += ret_val[0]
                 yield self.env.timeout(Time.SECOND)
 
-            end = self.env.now
-            T = end- start
+            '''end = self.env.now
+            T = end - start
             S = remote_replica.size
             ConPr = 0
             for tick in range(start, end):
@@ -79,14 +75,16 @@ class DistributedDataManagementSystem:
                     ConPr += value
             # the above loop will redundantly add
             # the current replica. subtract its size
-            ConPr -= remote_replica.size
-            grid.transfer_datasets[key].append([S, ConPr, T])
+            ConPr -= remote_replica.size'''
+            #memory
+            #grid.transfer_datasets[key].append([S, ConPr, T])
 
-            link.campaign_load -= 1
-            local_replica = local_SE.replicate(file=remote_replica.file, reserved_space=True)
+            del link.campaign_load[transfer_id]
+            link.campaign_load_changed = True
             # key -> value: index of replica -> local replica
             job.finished_data_placement[i] = local_replica
-            #print('Successfully performed data-placement.')
+            # print('Successfully performed data-placement.')
+
 
     def clean_up(self):
         # once per hour (3600 ticks) perform the check:
@@ -100,8 +98,8 @@ class DistributedDataManagementSystem:
 
             for SE in local_SEs:
                 for replica in SE.replicas:
-                    if self.env.now - replica.accessed_at > Time.DAY and \
-                    replica not in required_replicas:
-                        SE.remove_replica(replica)
+                    if (self.env.now - replica.accessed_at > Time.DAY and
+                       replica not in required_replicas):
+                        yield self.env.process(SE.remove_replica(replica))
                         print("REMOVED REPLICA.")
             yield self.env.timeout(Time.CLEAN_UP_INTERVAL)

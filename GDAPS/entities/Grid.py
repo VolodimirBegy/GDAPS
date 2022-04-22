@@ -8,6 +8,8 @@ from GDAPS.entities import Protocol
 
 from random import uniform, randint
 import numpy as np
+import simpy
+import ast
 
 
 
@@ -18,8 +20,8 @@ class Grid:
         for dc in data_centers:
             dc.grid = self
         self.data_centers = data_centers
-        self.distributed_data_management_system = ddm
-        self.distributed_data_management_system.grid = self
+        self.ddm = ddm
+        self.ddm.grid = self
         self.workload_management_system = wms
         self.workload_management_system.grid = self
         self.running_jobs = []
@@ -29,6 +31,7 @@ class Grid:
         # value: respective dataset
         self.transfer_datasets = {}
         self.protocol = Protocol(overhead)
+        self.links = {}
 
     def get_all_storage_elements(self):
         all_SEs = []
@@ -43,9 +46,11 @@ class Grid:
         return all_WNs
 
     # link only the subset of relevant machines
-    def link_machines(self, all_replicas, jobs_dc, bandwidth, mean, std):
+    def link_machines(self, all_replicas, jobs_dc, dp_transfer_quota):
+        setup = "links\n"
         self.links = {}
         # add all local SEs
+        local_SEs = jobs_dc.storage_elements[:]
         all_SEs = jobs_dc.storage_elements[:]
         # add all SEs with a replica
         for replica in all_replicas:
@@ -63,36 +68,76 @@ class Grid:
             u = all_SEs[i]
             for k in range(len(all_WNs)):
                 v = all_WNs[k]
-                if u.data_center == v.data_center:
-                    # stage-in and remote data access
-                    #bandwidth = uniform(Link.LOCAL_SE_TO_WN_MIN_BANDWIDTH, Link.LOCAL_SE_TO_WN_MAX_BANDWIDTH)
-                    pass
-                else:
-                    # remote data access only
-                    #bandwidth = uniform(Link.REMOTE_SE_TO_WN_MIN_BANDWIDTH, Link.REMOTE_SE_TO_WN_MAX_BANDWIDTH)
-                    pass
-                link = Link(u, v, self, self.env, bandwidth, mean, std)
+
+                bandwidth = np.random.uniform(750, 1805) if u.data_center is v.data_center else np.random.uniform(125, 12500)
+                background_load_range = [randint(10, 200) for _ in range(10)]
+                background_load_t = randint(10, 60)
+                size_weighted_factor = np.random.uniform(0, 1)
+                throttle = np.random.uniform(5, 90)
+                link = Link(u, v, self, self.env, bandwidth, background_load_range,
+                            background_load_t, size_weighted_factor, throttle)
+                setup += "{} {} {} {} {} {} {}\n".format(u.id, v.id, bandwidth, background_load_range,
+                                                         background_load_t, size_weighted_factor, throttle)
                 self.links[link.id] = link
 
-            SE_subset = all_SEs[:]
-            SE_subset.remove(all_SEs[i])
+            SE_subset = local_SEs[:]
+            if all_SEs[i] in SE_subset:
+                SE_subset.remove(all_SEs[i])
             for j in range(len(SE_subset)):
                 v = SE_subset[j]
-                # data placement only
-                if u.data_center == v.data_center:
-                    #bandwidth = uniform(Link.LOCAL_SE_TO_SE_MIN_BANDWIDTH, Link.LOCAL_SE_TO_SE_MAX_BANDWIDTH)
-                    pass
-                else:
-                    #bandwidth = uniform(Link.REMOTE_SE_TO_SE_MIN_BANDWIDTH, Link.REMOTE_SE_TO_SE_MAX_BANDWIDTH)
-                    pass
-                link = Link(u, v, self, self.env, bandwidth, mean, std)
+
+                bandwidth = np.random.uniform(750, 1805) if u.data_center is v.data_center else np.random.uniform(125, 12500)
+                background_load_range = [randint(10, 200) for _ in range(10)]
+                background_load_t = randint(10, 60)
+                size_weighted_factor = np.random.uniform(0, 1)
+                throttle = np.random.uniform(5, 90)
+                link = Link(u, v, self, self.env, bandwidth, background_load_range,
+                            background_load_t, size_weighted_factor, throttle)
+                setup += "{} {} {} {} {} {} {}\n".format(u.id, v.id, bandwidth, background_load_range,
+                                                         background_load_t, size_weighted_factor, throttle)
                 self.links[link.id] = link
 
-        self.distributed_data_management_system.set_transfer_quotas()
+        self.ddm.set_transfer_quotas(dp_transfer_quota)
+        return setup
+
+    def link_machines_from_setup(self, setup, all_SEs, all_WNs, dp_transfer_quota):
+        self.links = {}
+        setup_index = 0
+        while not setup[setup_index].startswith("job"):
+            link_data = setup[setup_index].split("[")
+            link_data1 = link_data[0].split(" ")[:-1]
+            u, v = None, None
+            if link_data1[0].startswith("SE"):
+                u = all_SEs[int(link_data1[0].split("SE")[1])]
+            else:
+                u = all_WNs[int(link_data1[0].split("WN")[1])]
+            if link_data1[1].startswith("SE"):
+                v = all_SEs[int(link_data1[1].split("SE")[1])]
+            else:
+                v = all_WNs[int(link_data1[1].split("WN")[1])]
+            bandwidth = float(link_data1[-1])
+            link_data2 = link_data[1].split("]")
+            background_load_range = ast.literal_eval("[" + link_data2[0] + "]")
+            link_data3 = link_data2[1][1:].split(" ")
+            background_load_t = int(link_data3[0])
+            size_weighted_factor = float(link_data3[1])
+            throttle = float(link_data3[2])
+            link = Link(u, v, self, self.env, bandwidth, background_load_range,
+                        background_load_t, size_weighted_factor, throttle)
+            self.links[link.id] = link
+            setup_index += 1
+
+        self.ddm.set_transfer_quotas(dp_transfer_quota)
+        return setup[setup_index:]
+
 
     def get_link(self, u, v):
         linkId = "{}-{}".format(u.id, v.id)
-        return self.links[linkId]
 
-    def update_background_load(self, link):
-        link.background_load = max(0, int(np.random.normal(link.background_load_mean, link.background_load_std, 1).item()))
+        if linkId not in self.links:
+            link = Link(u, v, self, self.env)
+            self.links[link.id] = link
+            if isinstance(u, StorageElement) and isinstance(v, StorageElement):
+                self.ddm.transfer_quotas[linkId] = simpy.Resource(self.env, capacity=100000)
+
+        return self.links[linkId]

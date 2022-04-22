@@ -15,10 +15,7 @@ class WorkloadManagementSystem:
         self.grid = None
         self.job_queues = {}
 
-    def submit(self, job, dc, start_time):
-        if start_time > self.env.now:
-            yield self.env.timeout(start_time - self.env.now)
-
+    def submit(self, job, dc):
         #print('Job {} submitted at {}.'.format(job, self.env.now))
         dc.grid.running_jobs.append(job)
 
@@ -34,10 +31,14 @@ class WorkloadManagementSystem:
         data_placement_requests = []
         for i in range(len(job.access_profiles)):
             if job.access_profiles[i] in AccessProfile.INCLUDES_DATA_PLACEMENT:
-                data_placement_request = self.env.process(self.grid.distributed_data_management_system.request_data_placement(job, i))
+                data_placement_request = self.env.process(self.grid.ddm.request_data_placement(job, i))
                 data_placement_requests.append(data_placement_request)
         # wait for all data placement requests to terminate
+        #print("{} data placement requests".format(len(data_placement_requests)))
         yield from data_placement_requests
+        for dpr in data_placement_requests:
+            if not dpr.processed:
+                raise Exception("yield from data_placement_requests")
 
         with wn.job_slots.request() as req:
             yield req
@@ -48,3 +49,6 @@ class WorkloadManagementSystem:
         wn.assigned_jobs.remove(job)
         self.grid.running_jobs.remove(job)
         #print('Job {} finished at {}.'.format(job, self.env.now))
+        print("{} jobs running".format(len(self.grid.running_jobs)))
+        if(len(self.grid.running_jobs) == 0):
+            print(self.env.now)
